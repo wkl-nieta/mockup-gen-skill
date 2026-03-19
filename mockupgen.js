@@ -42,6 +42,9 @@ const token =
   process.env.NETA_TOKEN ||
   readTokenFromEnvFile(
     path.join(os.homedir(), ".openclaw", "workspace", ".env")
+  ) ||
+  readTokenFromEnvFile(
+    path.join(os.homedir(), "developer", "clawhouse", ".env")
   );
 
 if (!token) {
@@ -66,16 +69,17 @@ async function submitTask() {
   const response = await fetch("https://api.talesofai.cn/v3/make_image", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "content-type": "application/json",
       "x-token": token,
+      "x-platform": "nieta-app/web",
     },
     body: JSON.stringify({
-      prompt,
-      extra_param: {
-        width: dimensions.width,
-        height: dimensions.height,
-      },
-      style_args: [{ style_name: style }],
+      storyId: "DO_NOT_USE",
+      jobType: "universal",
+      rawPrompt: [{ type: "freetext", value: prompt, weight: 1 }],
+      width: dimensions.width,
+      height: dimensions.height,
+      meta: { entrance: "PICTURE,VERSE" },
     }),
   });
 
@@ -85,10 +89,16 @@ async function submitTask() {
     process.exit(1);
   }
 
-  const data = await response.json();
-  const taskUuid = data.task_uuid || data.uuid || data.id;
+  const raw = await response.text();
+  let taskUuid;
+  try {
+    const data = JSON.parse(raw);
+    taskUuid = data.task_uuid;
+  } catch {
+    taskUuid = raw.trim();
+  }
   if (!taskUuid) {
-    console.error("Error: No task_uuid in response:", JSON.stringify(data));
+    console.error("Error: No task_uuid in response:", raw);
     process.exit(1);
   }
   return taskUuid;
@@ -96,8 +106,8 @@ async function submitTask() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const MAX_ATTEMPTS = 60;
-  const INTERVAL_MS = 3000;
+  const MAX_ATTEMPTS = 90;
+  const INTERVAL_MS = 2000;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
@@ -105,7 +115,11 @@ async function pollTask(taskUuid) {
     const response = await fetch(
       `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`,
       {
-        headers: { "x-token": token },
+        headers: {
+          "x-token": token,
+          "x-platform": "nieta-app/web",
+          "content-type": "application/json",
+        },
       }
     );
 
@@ -116,26 +130,21 @@ async function pollTask(taskUuid) {
     }
 
     const data = await response.json();
-    const status = data.status;
+    const status = data.task_status;
 
-    if (status === "DONE") {
-      const imageUrl =
-        data.result_image_url || data.image_url || data.url;
-      if (!imageUrl) {
-        console.error("Error: No image URL in response:", JSON.stringify(data));
-        process.exit(1);
-      }
-      console.log(imageUrl);
-      process.exit(0);
+    if (status === "PENDING" || status === "MODERATION") {
+      // Still running — continue polling
+      continue;
     }
 
-    if (status === "FAILED") {
-      const reason = data.error || data.message || JSON.stringify(data);
-      console.error(`Task failed: ${reason}`);
+    // Any other status means done
+    const imageUrl = data.artifacts && data.artifacts[0] && data.artifacts[0].url;
+    if (!imageUrl) {
+      console.error("Error: No artifact URL in response:", JSON.stringify(data));
       process.exit(1);
     }
-
-    // Still pending — continue polling
+    console.log(imageUrl);
+    process.exit(0);
   }
 
   console.error("Error: Timed out waiting for image generation.");
