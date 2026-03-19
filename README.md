@@ -1,6 +1,6 @@
 # AI Mockup Generator
 
-Generate stunning **ai mockup generator** images from a text description using AI — powered by the Neta talesofai API. Get back a direct image URL instantly, ready to embed or download.
+Generate stunning **ai mockup generator** images from a text prompt — powered by the Neta talesofai API. Get back a direct image URL in seconds.
 
 ---
 
@@ -28,10 +28,10 @@ node mockupgen.js
 node mockupgen.js "red sneaker on white studio background"
 
 # With size and style options
-node mockupgen.js "vintage coffee mug" --size portrait --style cinematic
+node mockupgen.js "luxury watch on marble surface" --size square --style cinematic
 
-# Pass token directly
-node mockupgen.js "laptop on desk" --token YOUR_NETA_TOKEN
+# Pass token inline
+node mockupgen.js "coffee cup mockup" --token YOUR_NETA_TOKEN
 ```
 
 ---
@@ -40,9 +40,9 @@ node mockupgen.js "laptop on desk" --token YOUR_NETA_TOKEN
 
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
-| `--size` | `square`, `portrait`, `landscape`, `tall` | `landscape` | Output image dimensions |
-| `--style` | `anime`, `cinematic`, `realistic` | `realistic` | Visual style of the generated image |
-| `--token` | string | — | Override the API token (see Token Setup) |
+| `--size` | `portrait`, `landscape`, `square`, `tall` | `landscape` | Output image dimensions |
+| `--style` | `anime`, `cinematic`, `realistic` | `realistic` | Visual style preset |
+| `--token` | string | — | Override the NETA_TOKEN |
 
 ### Size reference
 
@@ -57,18 +57,18 @@ node mockupgen.js "laptop on desk" --token YOUR_NETA_TOKEN
 
 ## Token Setup
 
-The script looks for your `NETA_TOKEN` in this order:
+The script looks for your Neta API token in the following order:
 
 1. `--token YOUR_TOKEN` CLI flag
 2. `NETA_TOKEN` environment variable
-3. `~/.openclaw/workspace/.env` file
+3. `~/.openclaw/workspace/.env` file (line matching `NETA_TOKEN=...`)
 
-**Recommended — store in `.env`:**
+**Recommended — add to your `.env` file:**
 ```
 NETA_TOKEN=your_token_here
 ```
 
-**Or export in your shell:**
+Or export it in your shell:
 ```bash
 export NETA_TOKEN=your_token_here
 ```
@@ -77,24 +77,20 @@ export NETA_TOKEN=your_token_here
 
 ## Output
 
-On success the script prints a single image URL to stdout and exits with code `0`:
+The script prints a single image URL to stdout on success, making it easy to pipe into other tools:
 
+```bash
+URL=$(node mockupgen.js "product shot") && open "$URL"
 ```
-https://cdn.talesofai.cn/.../<image>.png
-```
-
-On failure it prints an error message to stderr and exits with code `1`.
 
 ---
 
-## Example
+## Example prompts
 
-```bash
-$ node mockupgen.js "product mockup on clean background, professional photography style" --size landscape --style realistic
-[1/60] status: PENDING
-[2/60] status: PROCESSING
-https://cdn.talesofai.cn/artifacts/abc123/result.png
-```
+- `product mockup on clean background, professional photography style`
+- `wireless headphones floating on pastel gradient`
+- `skincare bottle on wet stone, natural light`
+- `sneaker exploded view, technical diagram style`
 
 ---
 

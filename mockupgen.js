@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-// --- CLI argument parsing ---
+// --- CLI arg parsing ---
 const args = process.argv.slice(2);
 let prompt = "";
 let size = "landscape";
@@ -27,10 +27,9 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-function readTokenFromEnvFile() {
-  const envPath = path.join(os.homedir(), ".openclaw", "workspace", ".env");
+function readTokenFromEnvFile(filePath) {
   try {
-    const content = fs.readFileSync(envPath, "utf8");
+    const content = fs.readFileSync(filePath, "utf8");
     const match = content.match(/NETA_TOKEN=(.+)/);
     return match ? match[1].trim() : null;
   } catch {
@@ -41,7 +40,9 @@ function readTokenFromEnvFile() {
 const token =
   tokenArg ||
   process.env.NETA_TOKEN ||
-  readTokenFromEnvFile();
+  readTokenFromEnvFile(
+    path.join(os.homedir(), ".openclaw", "workspace", ".env")
+  );
 
 if (!token) {
   console.error(
@@ -50,7 +51,7 @@ if (!token) {
   process.exit(1);
 }
 
-// --- Size mapping ---
+// --- Size map ---
 const SIZES = {
   square:    { width: 1024, height: 1024 },
   portrait:  { width: 832,  height: 1216 },
@@ -58,42 +59,36 @@ const SIZES = {
   tall:      { width: 704,  height: 1408 },
 };
 
-const dimensions = SIZES[size];
-if (!dimensions) {
-  console.error(`Error: unknown size "${size}". Choose from: ${Object.keys(SIZES).join(", ")}`);
-  process.exit(1);
-}
+const dimensions = SIZES[size] || SIZES.landscape;
 
-// --- Submit image generation task ---
+// --- Submit image generation request ---
 async function submitTask() {
-  const body = {
-    prompt,
-    extra_param: {
-      width: dimensions.width,
-      height: dimensions.height,
-    },
-    style_args: [{ style_name: style }],
-  };
-
-  const res = await fetch("https://api.talesofai.cn/v3/make_image", {
+  const response = await fetch("https://api.talesofai.cn/v3/make_image", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-token": token,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      prompt,
+      extra_param: {
+        width: dimensions.width,
+        height: dimensions.height,
+      },
+      style_args: [{ style_name: style }],
+    }),
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`Error submitting task (HTTP ${res.status}): ${text}`);
+  if (!response.ok) {
+    const text = await response.text();
+    console.error(`Error submitting task (${response.status}): ${text}`);
     process.exit(1);
   }
 
-  const data = await res.json();
+  const data = await response.json();
   const taskUuid = data.task_uuid || data.uuid || data.id;
   if (!taskUuid) {
-    console.error("Error: no task_uuid in response:", JSON.stringify(data));
+    console.error("Error: No task_uuid in response:", JSON.stringify(data));
     process.exit(1);
   }
   return taskUuid;
@@ -101,33 +96,33 @@ async function submitTask() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const maxAttempts = 60;
-  const intervalMs = 3000;
+  const MAX_ATTEMPTS = 60;
+  const INTERVAL_MS = 3000;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    await new Promise((r) => setTimeout(r, intervalMs));
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
 
-    const res = await fetch(
+    const response = await fetch(
       `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`,
       {
         headers: { "x-token": token },
       }
     );
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`Error polling task (HTTP ${res.status}): ${text}`);
+    if (!response.ok) {
+      const text = await response.text();
+      console.error(`Poll error (${response.status}): ${text}`);
       process.exit(1);
     }
 
-    const data = await res.json();
+    const data = await response.json();
     const status = data.status;
 
     if (status === "DONE") {
       const imageUrl =
         data.result_image_url || data.image_url || data.url;
       if (!imageUrl) {
-        console.error("Task DONE but no image URL found:", JSON.stringify(data));
+        console.error("Error: No image URL in response:", JSON.stringify(data));
         process.exit(1);
       }
       console.log(imageUrl);
@@ -136,21 +131,17 @@ async function pollTask(taskUuid) {
 
     if (status === "FAILED") {
       const reason = data.error || data.message || JSON.stringify(data);
-      console.error(`Task FAILED: ${reason}`);
+      console.error(`Task failed: ${reason}`);
       process.exit(1);
     }
 
     // Still pending — continue polling
-    process.stderr.write(`[${attempt}/${maxAttempts}] status: ${status}\n`);
   }
 
-  console.error("Error: timed out waiting for task to complete.");
+  console.error("Error: Timed out waiting for image generation.");
   process.exit(1);
 }
 
 // --- Main ---
-(async () => {
-  const taskUuid = await submitTask();
-  process.stderr.write(`Task submitted: ${taskUuid}\n`);
-  await pollTask(taskUuid);
-})();
+const taskUuid = await submitTask();
+await pollTask(taskUuid);
