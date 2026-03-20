@@ -1,6 +1,6 @@
 # AI Mockup Generator
 
-Generate stunning **ai mockup generator** images from a text prompt — powered by the Neta talesofai API. Get back a direct image URL in seconds.
+Generate professional AI-powered product mockup images from a text description. Powered by the Neta talesofai API, this skill returns a direct image URL in seconds.
 
 ---
 
@@ -11,7 +11,7 @@ Generate stunning **ai mockup generator** images from a text prompt — powered 
 npx skills add wkl-nieta/mockup-gen-skill
 ```
 
-**Via ClawHub / OpenClaw:**
+**Via ClawHub:**
 ```bash
 clawhub install mockup-gen-skill
 ```
@@ -21,18 +21,23 @@ clawhub install mockup-gen-skill
 ## Usage
 
 ```bash
-# Basic — uses default prompt
+# Basic usage (uses default prompt)
 node mockupgen.js
 
 # Custom prompt
-node mockupgen.js "red sneaker on white studio background"
+node mockupgen.js "white ceramic mug on marble surface, soft lighting"
 
-# With size and style options
-node mockupgen.js "luxury watch on marble surface" --size square --style cinematic
+# Specify size
+node mockupgen.js "sneaker floating on gradient background" --size portrait
 
-# Pass token inline
-node mockupgen.js "coffee cup mockup" --token YOUR_NETA_TOKEN
+# Use a reference image UUID
+node mockupgen.js "same product, outdoor setting" --ref abc123-uuid
+
+# Pass token directly
+node mockupgen.js "luxury watch flat lay" --token YOUR_NETA_TOKEN
 ```
+
+The script prints the generated image URL to stdout and exits.
 
 ---
 
@@ -40,14 +45,14 @@ node mockupgen.js "coffee cup mockup" --token YOUR_NETA_TOKEN
 
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
-| `--size` | `portrait`, `landscape`, `square`, `tall` | `landscape` | Output image dimensions |
-| `--style` | `anime`, `cinematic`, `realistic` | `realistic` | Visual style preset |
-| `--token` | string | — | Override the NETA_TOKEN |
+| `--size` | `square`, `portrait`, `landscape`, `tall` | `landscape` | Output image dimensions |
+| `--token` | string | — | Neta API token (overrides env/file) |
+| `--ref` | UUID string | — | Reference picture UUID for style inheritance |
 
-### Size reference
+### Size dimensions
 
-| Name | Dimensions |
-|------|-----------|
+| Name | Width × Height |
+|------|---------------|
 | `square` | 1024 × 1024 |
 | `portrait` | 832 × 1216 |
 | `landscape` | 1216 × 832 |
@@ -57,40 +62,34 @@ node mockupgen.js "coffee cup mockup" --token YOUR_NETA_TOKEN
 
 ## Token Setup
 
-The script looks for your Neta API token in the following order:
+The script resolves your `NETA_TOKEN` in this order:
 
-1. `--token YOUR_TOKEN` CLI flag
+1. `--token` CLI flag
 2. `NETA_TOKEN` environment variable
-3. `~/.openclaw/workspace/.env` file (line matching `NETA_TOKEN=...`)
+3. `~/.openclaw/workspace/.env` — line matching `NETA_TOKEN=...`
+4. `~/developer/clawhouse/.env` — line matching `NETA_TOKEN=...`
 
-**Recommended — add to your `.env` file:**
+**Recommended:** add your token to `~/.openclaw/workspace/.env`:
 ```
 NETA_TOKEN=your_token_here
 ```
 
-Or export it in your shell:
-```bash
-export NETA_TOKEN=your_token_here
-```
+---
+
+## Default prompt
+
+If no prompt argument is provided, the script uses:
+> `product mockup on clean background, professional photography style`
 
 ---
 
-## Output
+## Example output
 
-The script prints a single image URL to stdout on success, making it easy to pipe into other tools:
-
-```bash
-URL=$(node mockupgen.js "product shot") && open "$URL"
+```
+https://cdn.talesofai.cn/artifacts/abc123.jpg
 ```
 
----
-
-## Example prompts
-
-- `product mockup on clean background, professional photography style`
-- `wireless headphones floating on pastel gradient`
-- `skincare bottle on wet stone, natural light`
-- `sneaker exploded view, technical diagram style`
+The URL is printed directly to stdout, making it easy to pipe into other tools or scripts.
 
 ---
 

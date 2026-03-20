@@ -1,25 +1,20 @@
 #!/usr/bin/env node
-import fs from "fs";
-import path from "path";
-import os from "os";
+import { readFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
-// --- CLI arg parsing ---
+// --- CLI args ---
 const args = process.argv.slice(2);
-let prompt = "";
+let prompt = null;
 let size = "landscape";
-let style = "realistic";
-let tokenArg = "";
+let tokenFlag = null;
+let refUuid = null;
 
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--size" && args[i + 1]) {
-    size = args[++i];
-  } else if (args[i] === "--style" && args[i + 1]) {
-    style = args[++i];
-  } else if (args[i] === "--token" && args[i + 1]) {
-    tokenArg = args[++i];
-  } else if (!args[i].startsWith("--") && !prompt) {
-    prompt = args[i];
-  }
+  if (args[i] === "--size" && args[i + 1]) { size = args[++i]; }
+  else if (args[i] === "--token" && args[i + 1]) { tokenFlag = args[++i]; }
+  else if (args[i] === "--ref" && args[i + 1]) { refUuid = args[++i]; }
+  else if (!args[i].startsWith("--") && prompt === null) { prompt = args[i]; }
 }
 
 if (!prompt) {
@@ -27,9 +22,10 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-function readTokenFromEnvFile(filePath) {
+function readEnvFile(filePath) {
   try {
-    const content = fs.readFileSync(filePath, "utf8");
+    const resolved = filePath.replace(/^~/, homedir());
+    const content = readFileSync(resolved, "utf8");
     const match = content.match(/NETA_TOKEN=(.+)/);
     return match ? match[1].trim() : null;
   } catch {
@@ -37,20 +33,14 @@ function readTokenFromEnvFile(filePath) {
   }
 }
 
-const token =
-  tokenArg ||
+const TOKEN =
+  tokenFlag ||
   process.env.NETA_TOKEN ||
-  readTokenFromEnvFile(
-    path.join(os.homedir(), ".openclaw", "workspace", ".env")
-  ) ||
-  readTokenFromEnvFile(
-    path.join(os.homedir(), "developer", "clawhouse", ".env")
-  );
+  readEnvFile("~/.openclaw/workspace/.env") ||
+  readEnvFile("~/developer/clawhouse/.env");
 
-if (!token) {
-  console.error(
-    "Error: NETA_TOKEN not found. Set it via --token, NETA_TOKEN env var, or ~/.openclaw/workspace/.env"
-  );
+if (!TOKEN) {
+  console.error("Error: NETA_TOKEN not found. Pass --token, set NETA_TOKEN env var, or add it to ~/.openclaw/workspace/.env");
   process.exit(1);
 }
 
@@ -62,95 +52,98 @@ const SIZES = {
   tall:      { width: 704,  height: 1408 },
 };
 
-const dimensions = SIZES[size] || SIZES.landscape;
+const { width, height } = SIZES[size] || SIZES.landscape;
 
-// --- Submit image generation request ---
-async function submitTask() {
-  const response = await fetch("https://api.talesofai.cn/v3/make_image", {
+// --- Headers ---
+const HEADERS = {
+  "x-token": TOKEN,
+  "x-platform": "nieta-app/web",
+  "content-type": "application/json",
+};
+
+// --- Build request body ---
+const body = {
+  storyId: "DO_NOT_USE",
+  jobType: "universal",
+  rawPrompt: [{ type: "freetext", value: prompt, weight: 1 }],
+  width,
+  height,
+  meta: { entrance: "PICTURE,VERSE" },
+  context_model_series: "8_image_edit",
+};
+
+if (refUuid) {
+  body.inherit_params = {
+    collection_uuid: refUuid,
+    picture_uuid: refUuid,
+  };
+}
+
+// --- Submit job ---
+async function submitJob() {
+  const res = await fetch("https://api.talesofai.cn/v3/make_image", {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-token": token,
-      "x-platform": "nieta-app/web",
-    },
-    body: JSON.stringify({
-      storyId: "DO_NOT_USE",
-      jobType: "universal",
-      rawPrompt: [{ type: "freetext", value: prompt, weight: 1 }],
-      width: dimensions.width,
-      height: dimensions.height,
-      meta: { entrance: "PICTURE,VERSE" },
-    }),
+    headers: HEADERS,
+    body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    console.error(`Error submitting task (${response.status}): ${text}`);
-    process.exit(1);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Submit failed (${res.status}): ${text}`);
   }
 
-  const raw = await response.text();
-  let taskUuid;
-  try {
-    const data = JSON.parse(raw);
-    taskUuid = data.task_uuid;
-  } catch {
-    taskUuid = raw.trim();
-  }
-  if (!taskUuid) {
-    console.error("Error: No task_uuid in response:", raw);
-    process.exit(1);
-  }
-  return taskUuid;
+  const data = await res.json();
+
+  if (typeof data === "string") return data;
+  if (data.task_uuid) return data.task_uuid;
+  throw new Error(`Unexpected response: ${JSON.stringify(data)}`);
 }
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
+  const url = `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`;
+  const PENDING_STATUSES = new Set(["PENDING", "MODERATION"]);
   const MAX_ATTEMPTS = 90;
   const INTERVAL_MS = 2000;
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, INTERVAL_MS));
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    await new Promise((r) => setTimeout(r, INTERVAL_MS));
 
-    const response = await fetch(
-      `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`,
-      {
-        headers: {
-          "x-token": token,
-          "x-platform": "nieta-app/web",
-          "content-type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`Poll error (${response.status}): ${text}`);
-      process.exit(1);
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Poll failed (${res.status}): ${text}`);
     }
 
-    const data = await response.json();
+    const data = await res.json();
     const status = data.task_status;
 
-    if (status === "PENDING" || status === "MODERATION") {
-      // Still running — continue polling
-      continue;
+    if (PENDING_STATUSES.has(status)) continue;
+
+    // Done
+    const imageUrl =
+      data.artifacts?.[0]?.url ||
+      data.result_image_url;
+
+    if (!imageUrl) {
+      throw new Error(`Task done but no image URL found: ${JSON.stringify(data)}`);
     }
 
-    // Any other status means done
-    const imageUrl = data.artifacts && data.artifacts[0] && data.artifacts[0].url;
-    if (!imageUrl) {
-      console.error("Error: No artifact URL in response:", JSON.stringify(data));
-      process.exit(1);
-    }
-    console.log(imageUrl);
-    process.exit(0);
+    return imageUrl;
   }
 
-  console.error("Error: Timed out waiting for image generation.");
-  process.exit(1);
+  throw new Error("Timed out waiting for image generation.");
 }
 
 // --- Main ---
-const taskUuid = await submitTask();
-await pollTask(taskUuid);
+(async () => {
+  try {
+    const taskUuid = await submitJob();
+    const imageUrl = await pollTask(taskUuid);
+    console.log(imageUrl);
+    process.exit(0);
+  } catch (err) {
+    console.error("Error:", err.message);
+    process.exit(1);
+  }
+})();
