@@ -94,3 +94,13 @@ The URL is printed directly to stdout, making it easy to pipe into other tools o
 ---
 
 Built with Claude Code · Powered by Neta
+
+## Example Output
+
+```bash
+node mockupgen.js "product mockup on clean background, professional photography style"
+```
+
+![Example output](https://oss.talesofai.cn/picture/7329bbcb-c3cf-443a-b578-730ed354996a.webp)
+
+> Prompt: *"product mockup on clean background, professional photography style"*
