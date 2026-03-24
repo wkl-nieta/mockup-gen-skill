@@ -68,7 +68,7 @@ const body = {
   rawPrompt: [{ type: "freetext", value: prompt, weight: 1 }],
   width,
   height,
-  meta: { entrance: "PICTURE,VERSE" },
+  meta: { entrance: "PICTURE,CLI" },
   context_model_series: "8_image_edit",
 };
 
@@ -81,7 +81,7 @@ if (refUuid) {
 
 // --- Submit job ---
 async function submitJob() {
-  const res = await fetch("https://api.talesofai.cn/v3/make_image", {
+  const res = await fetch("https://api.talesofai.com/v3/make_image", {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(body),
@@ -101,7 +101,7 @@ async function submitJob() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const url = `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`;
+  const url = `https://api.talesofai.com/v1/artifact/task/${taskUuid}`;
   const PENDING_STATUSES = new Set(["PENDING", "MODERATION"]);
   const MAX_ATTEMPTS = 90;
   const INTERVAL_MS = 2000;

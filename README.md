@@ -62,17 +62,18 @@ The script prints the generated image URL to stdout and exits.
 
 ## Token Setup
 
-The script resolves your `NETA_TOKEN` in this order:
+Get your Neta API token from the [Neta Open Portal](https://www.neta.art/open/).
 
-1. `--token` CLI flag
-2. `NETA_TOKEN` environment variable
-3. `~/.openclaw/workspace/.env` — line matching `NETA_TOKEN=...`
-4. `~/developer/clawhouse/.env` — line matching `NETA_TOKEN=...`
+Set it via environment variable:
+```bash
+export NETA_TOKEN=your_token_here
+```
 
-**Recommended:** add your token to `~/.openclaw/workspace/.env`:
+Or pass inline:
+```bash
+node mockupgen.js "your prompt" --token your_token_here
 ```
-NETA_TOKEN=your_token_here
-```
+
 
 ---
 
@@ -93,14 +94,4 @@ The URL is printed directly to stdout, making it easy to pipe into other tools o
 
 ---
 
-Built with Claude Code · Powered by Neta
-
-## Example Output
-
-```bash
-node mockupgen.js "product mockup on clean background, professional photography style"
-```
-
-![Example output](https://oss.talesofai.cn/picture/7329bbcb-c3cf-443a-b578-730ed354996a.webp)
-
-> Prompt: *"product mockup on clean background, professional photography style"*
+Built with [Claude Code](https://claude.ai/claude-code) · Powered by [Neta](https://www.neta.art/) · [API Docs](https://www.neta.art/open/)
