@@ -40,7 +40,10 @@ const TOKEN =
   readEnvFile("~/developer/clawhouse/.env");
 
 if (!TOKEN) {
-  console.error("Error: NETA_TOKEN not found. Pass --token, set NETA_TOKEN env var, or add it to ~/.openclaw/workspace/.env");
+  console.error('\n✗ NETA_TOKEN not found.');
+  console.error('  Global: sign up at https://www.neta.art/ → get token at https://www.neta.art/open/');
+  console.error('  China:  sign up at https://app.nieta.art/ → get token at https://app.nieta.art/security');
+  console.error('  Then:   export NETA_TOKEN=your_token_here');
   process.exit(1);
 }
 
@@ -81,7 +84,7 @@ if (refUuid) {
 
 // --- Submit job ---
 async function submitJob() {
-  const res = await fetch("https://api.talesofai.com/v3/make_image", {
+  const res = await fetch(`${process.env.NETA_API_URL || 'https://api.talesofai.cn'}/v3/make_image`, {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(body),
@@ -101,7 +104,7 @@ async function submitJob() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const url = `https://api.talesofai.com/v1/artifact/task/${taskUuid}`;
+  const url = `${process.env.NETA_API_URL || 'https://api.talesofai.cn'}/v1/artifact/task/${taskUuid}`;
   const PENDING_STATUSES = new Set(["PENDING", "MODERATION"]);
   const MAX_ATTEMPTS = 90;
   const INTERVAL_MS = 2000;
