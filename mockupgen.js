@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import { readFileSync } from "fs";
-import { homedir } from "os";
-import { join } from "path";
 
 // --- CLI args ---
 const args = process.argv.slice(2);
@@ -22,22 +19,7 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-function readEnvFile(filePath) {
-  try {
-    const resolved = filePath.replace(/^~/, homedir());
-    const content = readFileSync(resolved, "utf8");
-    const match = content.match(/NETA_TOKEN=(.+)/);
-    return match ? match[1].trim() : null;
-  } catch {
-    return null;
-  }
-}
-
-const TOKEN =
-  tokenFlag ||
-  process.env.NETA_TOKEN ||
-  readEnvFile("~/.openclaw/workspace/.env") ||
-  readEnvFile("~/developer/clawhouse/.env");
+const TOKEN = tokenFlag || process.env.NETA_TOKEN;
 
 if (!TOKEN) {
   console.error('\n✗ NETA_TOKEN not found.');
