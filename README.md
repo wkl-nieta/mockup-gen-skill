@@ -60,54 +60,16 @@ The script prints the generated image URL to stdout and exits.
 
 ---
 
-## Example Output
+## Token Setup
 
-![Generated example](https://oss.talesofai.cn/picture/7329bbcb-c3cf-443a-b578-730ed354996a.webp)
+The script resolves your `NETA_TOKEN` in this order:
 
----
+1. `--token` CLI flag
+2. `NETA_TOKEN` environment variable
 
-## About Neta
-
-[Neta](https://www.neta.art/) (by TalesofAI) is an AI image and video generation platform with a powerful open API. It uses a **credit-based system (AP — Action Points)** where each image generation costs a small number of credits. Subscriptions are available for heavier usage.
-
-### Register & Get Token
-
-| Region | Sign up | Get API token |
-|--------|---------|---------------|
-| Global | [neta.art](https://www.neta.art/) | [neta.art/open](https://www.neta.art/open/) |
-| China  | [nieta.art](https://app.nieta.art/) | [nieta.art/security](https://app.nieta.art/security) |
-
-New accounts receive free credits to get started. No credit card required to try.
-
-### Pricing
-
-Neta uses a pay-per-generation credit model. View current plans on the [pricing page](https://www.neta.art/pricing).
-
-- **Free tier:** limited credits on signup — enough to test
-- **Subscription:** monthly AP allowance via Stripe
-- **Credit packs:** one-time top-up as needed
-
-### Set up your token
-
-```bash
-# Step 1 — get your token:
-#   Global: https://www.neta.art/open/
-#   China:  https://app.nieta.art/security
-
-# Step 2 — set it
-export NETA_TOKEN=your_token_here
-
-# Step 3 — run
-node mockupgen.js "your prompt"
 ```
-
-Or pass it inline:
-```bash
-node mockupgen.js "your prompt" --token your_token_here
+NETA_TOKEN=your_token_here
 ```
-
-> **API endpoint:** defaults to `api.talesofai.com` (Open Platform tokens).  
-> China users: set `NETA_API_BASE_URL=https://api.talesofai.com` to use the China endpoint.
 
 ---
 
@@ -126,3 +88,6 @@ https://cdn.talesofai.cn/artifacts/abc123.jpg
 
 The URL is printed directly to stdout, making it easy to pipe into other tools or scripts.
 
+## Example Output
+
+![Generated example](https://oss.talesofai.cn/picture/7329bbcb-c3cf-443a-b578-730ed354996a.webp)
