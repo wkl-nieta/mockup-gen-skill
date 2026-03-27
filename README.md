@@ -60,6 +60,12 @@ The script prints the generated image URL to stdout and exits.
 
 ---
 
+## Example Output
+
+![Generated example](https://oss.talesofai.cn/picture/7329bbcb-c3cf-443a-b578-730ed354996a.webp)
+
+---
+
 ## About Neta
 
 [Neta](https://www.neta.art/) (by TalesofAI) is an AI image and video generation platform with a powerful open API. It uses a **credit-based system (AP — Action Points)** where each image generation costs a small number of credits. Subscriptions are available for heavier usage.
@@ -103,7 +109,6 @@ node mockupgen.js "your prompt" --token your_token_here
 > **API endpoint:** defaults to `api.talesofai.com` (Open Platform tokens).  
 > China users: set `NETA_API_BASE_URL=https://api.talesofai.com` to use the China endpoint.
 
-
 ---
 
 ## Default prompt
@@ -121,6 +126,3 @@ https://cdn.talesofai.cn/artifacts/abc123.jpg
 
 The URL is printed directly to stdout, making it easy to pipe into other tools or scripts.
 
----
-
-Built with [Claude Code](https://claude.ai/claude-code) · Powered by [Neta](https://www.neta.art/) · [API Docs](https://www.neta.art/open/)

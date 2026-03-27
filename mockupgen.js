@@ -19,10 +19,10 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-const TOKEN = tokenFlag || process.env.NETA_TOKEN;
+const TOKEN = tokenFlag || process.env['NETA_TOKEN'];
 
 if (!TOKEN) {
-  console.error('\n✗ NETA_TOKEN not found.');
+  console.error('\n✗ NETA_TOKEN not set. Pass --token or export NETA_TOKEN=<your-token>');
   console.error('  Global: sign up at https://www.neta.art/ → get token at https://www.neta.art/open/');
   console.error('  China:  sign up at https://app.nieta.art/ → get token at https://app.nieta.art/security');
   console.error('  Then:   export NETA_TOKEN=your_token_here');
@@ -64,9 +64,11 @@ if (refUuid) {
   };
 }
 
+const API_BASE = process.env['NETA_API_BASE_URL'] || 'https://api.talesofai.com';
+
 // --- Submit job ---
 async function submitJob() {
-  const res = await fetch(`${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v3/make_image`, {
+  const res = await fetch(`${API_BASE}/v3/make_image`, {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(body),
@@ -86,7 +88,7 @@ async function submitJob() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const url = `${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v1/artifact/task/${taskUuid}`;
+  const url = `${API_BASE}/v1/artifact/task/${taskUuid}`;
   const PENDING_STATUSES = new Set(["PENDING", "MODERATION"]);
   const MAX_ATTEMPTS = 90;
   const INTERVAL_MS = 2000;
