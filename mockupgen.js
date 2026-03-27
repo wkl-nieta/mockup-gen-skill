@@ -19,10 +19,11 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-const TOKEN = tokenFlag || process.env['NETA_TOKEN'];
+const TOKEN = tokenFlag;
 
 if (!TOKEN) {
-  console.error('\n✗ NETA_TOKEN not set. Pass --token or export NETA_TOKEN=<your-token>');
+  console.error('\n✗ Token required. Pass via: --token YOUR_TOKEN');
+console.error('  Get yours at: https://www.neta.art/open/');
   console.error('  Global: sign up at https://www.neta.art/ → get token at https://www.neta.art/open/');
   console.error('  China:  sign up at https://app.nieta.art/ → get token at https://app.nieta.art/security');
   console.error('  Then:   export NETA_TOKEN=your_token_here');
@@ -63,8 +64,6 @@ if (refUuid) {
     picture_uuid: refUuid,
   };
 }
-
-const API_BASE = process.env['NETA_API_BASE_URL'] || 'https://api.talesofai.com';
 
 // --- Submit job ---
 async function submitJob() {
